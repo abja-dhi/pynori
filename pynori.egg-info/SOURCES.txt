@@ -1,0 +1,11 @@
+LICENSE
+README.md
+pyproject.toml
+setup.cfg
+pynori/__init__.py
+pynori/plotter.py
+pynori.egg-info/PKG-INFO
+pynori.egg-info/SOURCES.txt
+pynori.egg-info/dependency_links.txt
+pynori.egg-info/top_level.txt
+tests/test.py

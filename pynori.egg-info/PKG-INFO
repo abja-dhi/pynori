@@ -1,0 +1,16 @@
+Metadata-Version: 2.1
+Name: pynori
+Version: 0.0.1
+Summary: Python tools developed for NORI project
+Home-page: https://github.com/abja-dhi/pynori.git
+Author: Abbas Jazaeri
+Author-email: abja@dhigroup.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: MIT License
+Classifier: Operating System :: OS  Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# pynori
+Developed tools for NORI project
