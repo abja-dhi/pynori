@@ -7,10 +7,8 @@ import mikeio
 import importlib.resources as pkg_resources
 from scipy.interpolate import griddata
 from pyplume.plotting.matplotlib_shell import subplots, dhi_colors
-from scipy.spatial import KDTree
+from .utils import find_elements_within_radius_3d, find_n_nearest_elements, find_elements_within_ellipsoid
 import os
-
-
 
 def smooth1D(Y, lam):
     m, _ = Y.shape
@@ -21,15 +19,12 @@ def smooth1D(Y, lam):
     Z = np.linalg.solve(E + P, Y)
     return Z
 
-
-
 def scatter(X, Y, X_bins, Y_bins, density_power=0.5, lam=0, fig=None, ax=None, color=dhi_colors.blue1, s=25, label=""):
     bin = (X_bins[1] - X_bins[0]) / 10
     edges1 = np.interp(np.arange(0, len(X_bins)-1+0.01, 0.1), np.arange(len(X_bins)), X_bins)
     edges2 = np.interp(np.arange(0, len(Y_bins)-1+0.01, 0.1), np.arange(len(Y_bins)), Y_bins)
     ctrs1 = edges1[0:-1] + 0.5 * np.diff(edges1)
     ctrs2 = edges2[0:-1] + 0.5 * np.diff(edges2)
-
 
     F, _, _ = np.histogram2d(X, Y, bins=[edges1, edges2])
     F = np.power(F, density_power)
@@ -57,15 +52,6 @@ def scatter(X, Y, X_bins, Y_bins, density_power=0.5, lam=0, fig=None, ax=None, c
     
     return fig, ax
 
-def fix_coordinates(coordinates, correction, change_sign=False):
-    coordinates[:, 2] = coordinates[:, 2] + correction
-    if change_sign:
-        coordinates[:, 2] = -coordinates[:, 2]
-    return coordinates
-    
-def find_values_within_radius_2d(layer_values, layer_coordinates, observation_coordinates, radius):
-    distances = np.sqrt((layer_coordinates[:, 0] - observation_coordinates[0]) ** 2 + (layer_coordinates[:, 1] - observation_coordinates[1]) ** 2)
-    return layer_values[distances < radius]
 
 def match_model_observation(model_filename, observation_df, observation_x_column, observation_y_column, observation_z_column, model_depth_correction=0, change_depth_sign=False):
     dfsu = mikeio.open(model_filename)
@@ -82,35 +68,6 @@ def match_model_observation(model_filename, observation_df, observation_x_column
     time_intersection = model_times.intersection(observation_df.index)
     return element_coordinates, observation_coordinates, time_intersection
 
-def find_elements_within_radius_3d(array, point, radius):
-    distance = np.sqrt((array[:, 0] - point[0]) ** 2 + (array[:, 1] - point[1]) ** 2 + (array[:, 2] - point[2]) ** 2)
-    return np.where(distance < radius)[0]
-
-def find_elements_within_ellipsoid(elements, center, horizontal_radius, vertical_to_horizontal_resolution):
-    cx, cy, cz = center
-    vertical_radius = horizontal_radius * vertical_to_horizontal_resolution
-    
-    # Vectorized calculation of normalized distances
-    normalized_distances = np.sqrt(
-        ((elements[:, 0] - cx) ** 2 / horizontal_radius ** 2) +
-        ((elements[:, 1] - cy) ** 2 / horizontal_radius ** 2) +
-        ((elements[:, 2] - cz) ** 2 / vertical_radius ** 2)
-    )
-    
-    found_elements = np.where(normalized_distances <= 1)[0]
-    return found_elements
-
-def find_n_nearest_points(observ, model, row_index, n):
-    # Extract the row from the observ array
-    point = observ[row_index]
-
-    # Create a KDTree for the model array
-    tree = KDTree(model)
-
-    # Query the tree for the n nearest neighbors to the point
-    distances, indices = tree.query(point, k=n)
-
-    return indices
 
 def timeseries_calibration(model_dfsu,
                            model_item,
@@ -167,7 +124,7 @@ def timeseries_calibration(model_dfsu,
         elif search_method == "radius":
             model_indices = find_elements_within_radius_3d(element_coordinates, observation_coordinates[i], radius)
         elif search_method == "nearest":
-            model_indices = find_n_nearest_points(observation_coordinates, element_coordinates, i, n_nearest_points)
+            model_indices = find_n_nearest_elements(observation_coordinates, element_coordinates, i, n_nearest_points)
         model_values = dfsu[0].values[i, model_indices]
         for key in keys.keys():
             outputs[key].append(keys[key](model_values))
@@ -175,9 +132,3 @@ def timeseries_calibration(model_dfsu,
 
     output_df = pd.DataFrame(data=outputs, index=time_intersection)
     return output_df
-
-def depth_corrector(coordinates, correction_value, change_sign=False):
-    coordinates[:, 2] = coordinates[:, 2] + correction_value
-    if change_sign:
-        coordinates[:, 2] = -coordinates[:, 2]
-    return coordinates
