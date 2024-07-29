@@ -1,6 +1,8 @@
 import mikeio
 import os
-
+import numpy as np
+import pandas as pd
+import mikeio
 
 def split_dfsu_to_items(filename, path=None):
     """
@@ -29,3 +31,45 @@ def split_dfsu_to_items(filename, path=None):
         part = mikeio.read(filename, items=i)
         part.to_dfs(os.path.join(path, f"{actual_filename}_items", f"{actual_filename}_{items[i]}.dfsu"))
         print(f"File {items[i]} created. {i+1}/{len(items)}")
+
+def depth_corrector(coordinates, correction_value, change_sign=False):
+    coordinates[:, 2] = coordinates[:, 2] + correction_value
+    if change_sign:
+        coordinates[:, 2] = -coordinates[:, 2]
+    return coordinates
+
+def get_layers(coordinates):
+    layers = np.unique(coordinates[:, 2])
+    return layers
+
+def find_layer_coordinates(coordinates, layers, layer_no):
+    layer = layers[layer_no]
+    layer_coordinates = coordinates[coordinates[:, 2] == layer]
+    layer_indices = np.where(coordinates[:, 2] == layer)[0]
+    return layer_indices, layer_coordinates
+
+def find_closest_layer_index(layers, observation_depth):
+    if observation_depth < layers[0]:
+        return np.nan
+    if observation_depth > layers[-1]:
+        return np.nan
+    return np.argmin(np.abs(layers - observation_depth))
+
+def find_values_within_radius_2d(layer_values, layer_coordinates, observation_coordinates, radius):
+    distances = np.sqrt((layer_coordinates[:, 0] - observation_coordinates[0]) ** 2 + (layer_coordinates[:, 1] - observation_coordinates[1]) ** 2)
+    return layer_values[distances < radius]
+
+def get_plotting_data(X, Y):
+    unique_Y = np.unique(Y)
+    unique_X = []
+    for i, y in enumerate(unique_Y):
+        unique_X.append(np.max(X[Y == y]))
+    unique_X = np.array(unique_X)
+    data = np.vstack((unique_X, unique_Y)).T
+    data = data[data[:, 1].argsort()]
+    return data
+
+def find_elements_within_radius_3d(array, point, radius):
+    distance = np.sqrt((array[:, 0] - point[0]) ** 2 + (array[:, 1] - point[1]) ** 2 + (array[:, 2] - point[2]) ** 2)
+    return np.where(distance < radius)[0]
+    
