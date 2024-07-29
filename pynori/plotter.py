@@ -86,6 +86,12 @@ def plot_hist(model_fname, model_item, model_depth_correction, change_depth_sign
     output_df = pd.DataFrame(data=model_output, index=layers)
     return output_df
 
+def find_closest_layer_index(layers, observation_depth):
+    if observation_depth < layers[0]:
+        return np.nan
+    if observation_depth > layers[-1]:
+        return np.nan
+    return np.argmin(np.abs(layers - observation_depth))
 
 def tmp_maybe_deleted_later(model_filename, model_item, observation_df, observation_x_column, observation_y_column, observation_depth_column, model_depth_correction=0, change_depth_sign=False):
     element_coordinates, observation_coordinates, time_intersection = match_model_observation(model_filename, observation_df, observation_x_column, observation_y_column, observation_depth_column, model_depth_correction=model_depth_correction, change_depth_sign=change_depth_sign)
@@ -116,8 +122,6 @@ def find_elements_within_radius_2d(array, point, radius=50):
     distances = np.sqrt((array[:, 0] - point[0]) ** 2 + (array[:, 1] - point[1]) ** 2)
     within_radius_indices = np.where(distances <= radius)[0]
     return within_radius_indices
-
-
 
 def match_model_observation(model_filename, observation_df, observation_x_column, observation_y_column, observation_z_column, model_depth_correction=0, change_depth_sign=False):
     dfsu = mikeio.open(model_filename)
