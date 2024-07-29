@@ -70,6 +70,20 @@ def get_plotting_data(X, Y):
     return data
 
 def find_elements_within_radius_3d(array, point, radius):
-    distance = np.sqrt((array[:, 0] - point[0]) ** 2 + (array[:, 1] - point[1]) ** 2 + (array[:, 2] - point[2]) ** 2)
-    return np.where(distance < radius)[0]
+    distances_squared = np.sum((array - point) ** 2, axis=1)
+    within_radius_indices = np.where(distances_squared <= radius ** 2)[0]
+    return within_radius_indices
+
+def find_elements_within_ellipsoid(elements, center, horizontal_radius, vertical_to_horizontal_resolution):
+    cx, cy, cz = center
+    vertical_radius = horizontal_radius * vertical_to_horizontal_resolution
     
+    # Vectorized calculation of normalized distances
+    normalized_distances = np.sqrt(
+        ((elements[:, 0] - cx) ** 2 / horizontal_radius ** 2) +
+        ((elements[:, 1] - cy) ** 2 / horizontal_radius ** 2) +
+        ((elements[:, 2] - cz) ** 2 / vertical_radius ** 2)
+    )
+    
+    found_elements = np.where(normalized_distances <= 1)[0]
+    return found_elements
